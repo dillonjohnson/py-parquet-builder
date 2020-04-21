@@ -1,0 +1,4 @@
+pyarrow
+pandas
+boto3
+schema
