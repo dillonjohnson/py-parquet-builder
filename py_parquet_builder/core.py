@@ -53,6 +53,7 @@ def dictarray_file_to_s3(obj):
         os.remove(filename)
     else:
         # Raise alerts
+        os.remove(filename)
         raise FailedToLoadException(f"The file could not be loaded to bucket. Please retry again later.")
 
 
