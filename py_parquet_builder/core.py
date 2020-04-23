@@ -6,6 +6,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 import datetime
 import os
+from functools import partial
 
 # facebook/facebook-page-insights/2020/04/file.parquet
 class FailedToLoadException(Exception):
@@ -13,6 +14,17 @@ class FailedToLoadException(Exception):
 
 
 def validate_input(obj):
+    schema = Schema([{'processed_timestamp': datetime.datetime,
+                      'effective_timestamp': datetime.datetime,
+                      'month': str,
+                      'year': str,
+                      'json_payload': str,
+                      'social_network_id': str}],
+                    ignore_extra_keys=True)
+    schema.validate(obj)
+
+
+def validate_output(obj):
     schema = Schema([{'processed_timestamp': datetime.datetime,
                       'effective_timestamp': datetime.datetime,
                       'month': str,
@@ -29,22 +41,34 @@ def dictarray_to_parquet_table(obj):
     return table
 
 
-def parquet_table_to_file(tab):
-    filename = str(uuid4()) + ".parquet"
+def parquet_table_to_file(tab,
+                          filename):
     pq.write_table(table=tab,
                    where=filename)
     return filename
 
 
+def update_filename(row, filename):
+    row['filename'] = filename
+    return row
+
 def dictarray_file_to_s3(obj):
-    # Validate input
+    # validate input
     validate_input(obj)
+
+    # create and append filename
+    filename = str(uuid4()) + ".parquet"
+    # obj['filename'] = filename
+    obj = list(map(partial(update_filename, filename=filename), obj))
+
+    # validate output
+    validate_output(obj)
 
     # Convert to parquet table
     tab = dictarray_to_parquet_table(obj)
 
     # Load parquet to file
-    filename = parquet_table_to_file(tab)
+    filename = parquet_table_to_file(tab, filename)
 
     # Load file to S3
     resp = upload_file(filename, '')
@@ -65,14 +89,11 @@ if __name__ == '__main__':
             "effective_timestamp": datetime.datetime.today(),
             "year": "2020",
             "month": "06",
-            "test": "test"
-        },
-        {
-            "processed_timestamp": datetime.datetime.now(),
-            "effective_timestamp": datetime.datetime.today(),
-            "year": "2020",
-            "month": "06"
+            "test": "test",
+            "json_payload": "",
+            "social_network_id": ""
         }
     ]
-    validate_input(obj)
+    # validate_input(obj)
     # dictarray_to_bytes(obj)
+    dictarray_file_to_s3(obj)
