@@ -19,7 +19,9 @@ def validate_input(obj):
                       'month': str,
                       'year': str,
                       'json_payload': str,
-                      'social_network_id': str}],
+                      'social_network_id': str,
+                      'data_type_data': str,
+                      'social_network_type': str}],
                     ignore_extra_keys=True)
     schema.validate(obj)
 
@@ -31,7 +33,9 @@ def validate_output(obj):
                       'year': str,
                       'json_payload': str,
                       'social_network_id': str,
-                      'filename': str}],
+                      'filename': str,
+                      'data_type_data': str,
+                      'social_network_type': str}],
                     ignore_extra_keys=True)
     schema.validate(obj)
 
@@ -52,12 +56,13 @@ def update_filename(row, filename):
     row['filename'] = filename
     return row
 
-def dictarray_file_to_s3(obj):
+def dictarray_file_to_s3(obj, bucket):
     # validate input
     validate_input(obj)
 
     # create and append filename
-    filename = str(uuid4()) + ".parquet"
+    # filename = uuid4() + ".parquet"
+    filename = f'{obj["social_network_type"]}/{obj["data_type_data"]}/year={obj["year"]}/month={obj["month"]}/{uuid4()}.parquet'
     # obj['filename'] = filename
     obj = list(map(partial(update_filename, filename=filename), obj))
 
@@ -71,7 +76,7 @@ def dictarray_file_to_s3(obj):
     filename = parquet_table_to_file(tab, filename)
 
     # Load file to S3
-    resp = upload_file(filename, '')
+    resp = upload_file(filename, bucket)
 
     if resp:
         os.remove(filename)
