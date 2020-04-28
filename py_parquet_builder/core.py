@@ -62,7 +62,8 @@ def dictarray_file_to_s3(obj, bucket):
 
     # create and append filename
     # filename = uuid4() + ".parquet"
-    filename = f'{obj[0]["social_network_type"]}/{obj[0]["data_type_data"]}/year={obj[0]["year"]}/month={obj[0]["month"]}/{uuid4()}.parquet'
+    subpath = f'{obj[0]["social_network_type"]}/{obj[0]["data_type_data"]}/year={obj[0]["year"]}/month={obj[0]["month"]}/'
+    filename = f'{uuid4()}.parquet'
     # obj['filename'] = filename
     obj = list(map(partial(update_filename, filename=filename), obj))
 
@@ -76,7 +77,7 @@ def dictarray_file_to_s3(obj, bucket):
     filename = parquet_table_to_file(tab, filename)
 
     # Load file to S3
-    resp = upload_file(filename, bucket)
+    resp = upload_file(filename, bucket, object_name=subpath + filename)
 
     if resp:
         os.remove(filename)
